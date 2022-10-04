@@ -21,8 +21,6 @@ unsigned int BulletMaterialId;
 
 const float ENEMY_TANK_RADIUS = 1.5f;
 
-ParticleSystem particleSystem;
-
 bool gameOver = false;
 bool playerShooting = false;
 
@@ -258,7 +256,9 @@ void ArtilleryGame::GameUpdate()
 		m_particleSystem.Integrate(0.1f);
 
 		//Update the visual object from the phisics object
-		m_Bullet.gameObject->Position = glm::vec3(m_Bullet.particle->position.x, m_Bullet.particle->position.y, m_Bullet.particle->position.z);
+		m_Bullet.gameObject->Position = glm::vec3(m_Bullet.particle->position.x, 
+												  m_Bullet.particle->position.y, 
+												  m_Bullet.particle->position.z);
 	}
 
 	//Bullet hit the ground and not the enemy
