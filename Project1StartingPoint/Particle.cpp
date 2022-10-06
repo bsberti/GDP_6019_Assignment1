@@ -48,6 +48,9 @@ void Particle::PrintInfo() {
 }
 
 void Particle::Integrate(float dt) {
+	if (age <= 0.f)
+		return;
+
 	if (invMass <= 0)
 		return;
 

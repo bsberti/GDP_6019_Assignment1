@@ -163,7 +163,7 @@
     <ClInclude Include="ArtilleryGame.h" />
     <ClInclude Include="AssetInfo.h" />
     <ClInclude Include="Bullet.h" />
-    <ClInclude Include="Header.h" />
+    <ClInclude Include="Fire.h" />
     <ClInclude Include="Particle.h" />
     <ClInclude Include="ParticleSystem.h" />
     <ClInclude Include="Vector3.h" />

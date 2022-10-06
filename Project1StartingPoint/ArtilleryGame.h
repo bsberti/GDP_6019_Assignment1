@@ -5,6 +5,7 @@
 #include "Bullet.h"
 #include "Particle.h"
 #include "ParticleSystem.h"
+#include "Fire.h"
 
 using namespace gdp; 
 
@@ -16,9 +17,17 @@ public:
 	void Initialize();
 	void Destroy();
 
+	ParticleSystem m_particleSystem;
+
+	std::vector<Fire> m_explosionParticles;
+
 	void StartNewGame();
 	void GameUpdate();
 	void DisplayTextToUser(const std::string& text);
+	void CreateExplosion(float explosionSize);
+	void ResetBulletPosition();
+	void CleanExplosion();
+	void Boom();
 	
 private:
 	GameObject* CreateGameObjectByType(const std::string& type);
@@ -27,5 +36,4 @@ private:
 	GameObject* m_EnemyTank;
 	Bullet m_Bullet;
 
-	ParticleSystem m_particleSystem;
 };

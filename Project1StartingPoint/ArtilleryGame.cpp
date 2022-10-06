@@ -18,11 +18,14 @@ unsigned int ProjectileModelId;
 unsigned int PlayerMaterialId;
 unsigned int EnemyMaterialId;
 unsigned int BulletMaterialId;
+unsigned int SphereMaterialId;
 
 const float ENEMY_TANK_RADIUS = 1.5f;
 
 bool gameOver = false;
 bool playerShooting = false;
+bool enemyHit = false;
+bool openFire = false;
 
 Vector3 shotDirection;
 Vector3 gravity = Vector3(0.0f, -0.0981f, 0.0f);
@@ -75,7 +78,7 @@ void ArtilleryGame::Initialize()
 	m_EnemyTank = CreateGameObjectByType("Enemy");
 	
 	DEBUG_PRINT("Create Bullet!\n");
-	m_Bullet.particle = m_particleSystem.CreateParticle();
+	m_Bullet.particle = m_particleSystem.CreateParticle(1000.0f);
 	m_Bullet.gameObject = GDP_CreateGameObject();
 	m_Bullet.gameObject->Renderer.ShaderId = 1;
 	m_Bullet.gameObject->Renderer.MeshId = ProjectileModelId;
@@ -84,6 +87,8 @@ void ArtilleryGame::Initialize()
 	//m_PlayerTank->Position = glm::vec3(RandFloat(-20, 20), 0, RandFloat(-20, 20));
 	//m_EnemyTank->Position = glm::vec3(RandFloat(-20, 20), 0, RandFloat(-20, 20));
 	//m_Bullet.gameObject->Position = glm::vec3(0, 0, 0);
+
+	CreateExplosion(10);
 
 	StartNewGame();
 }
@@ -105,6 +110,11 @@ float DistanceBetween(glm::vec3 enemy, glm::vec3 bullet) {
 	return distance;
 }
 
+void ArtilleryGame::ResetBulletPosition() {
+	m_Bullet.gameObject->Position = glm::vec3(m_PlayerTank->Position.x, 0.5f, m_PlayerTank->Position.z);
+	m_Bullet.particle->position = Vector3(m_PlayerTank->Position.x, 0.5f, m_PlayerTank->Position.z);
+}
+
 
 /// <summary>
 /// StartNewGame
@@ -118,25 +128,18 @@ void ArtilleryGame::StartNewGame()
 
 	gameOver = false;
 	playerShooting = false;
+	enemyHit = false;
+	openFire = false;
+
 	printf("New Game Started! ---------------------------------------------\n");
 
 	m_PlayerTank->Position = glm::vec3(RandFloat(-20, 20), 0, RandFloat(-20, 20));
 	m_EnemyTank->Position = glm::vec3(RandFloat(-20, 20), 0, RandFloat(-20, 20));
-	m_Bullet.gameObject->Position = glm::vec3(m_PlayerTank->Position.x, 1.f, m_PlayerTank->Position.z);
-	m_Bullet.particle->position = Vector3(m_PlayerTank->Position.x, 1.f, m_PlayerTank->Position.z);
-	
+
+	ResetBulletPosition();
+
 	shotDirection = Vector3(1.0f, 1.0f, 1.0f);
 	//shotDirection.Normalize();
-}
-
-void Shot() {
-	if (playerShooting)
-		return;
-
-	playerShooting = true;
-	//shotDirection.Normalize();
-	printf("Player Shooting! Watch out! ---------------------------------------------\n");
-	// Applying force to the bullet now (position, velocity and acceleration)
 }
 
 void changingShotDirection(float x, float y, float z) {
@@ -162,37 +165,36 @@ void changingShotDirection(float x, float y, float z) {
 void ArtilleryGame::GameUpdate()
 {
 	// DEBUG_PRINT("ArtilleryGame::GameUpdate\n");
-	// TODO:
-	//printf("Game Runing!  --------------------------------------------------\n");
-
-	if (gameOver) {
-		StartNewGame();
-		return;
-	}
 	
 	if (GDP_IsKeyPressed('A') || GDP_IsKeyPressed('a')) {
 		// Change fire direction to the left
-		changingShotDirection(1.f, 0.f, 0.f);
+		if (!playerShooting && !openFire)
+			changingShotDirection(1.f, 0.f, 0.f);
 	}
 	if (GDP_IsKeyPressed('D') || GDP_IsKeyPressed('d')) {
 		// Change fire direction to the right
-		changingShotDirection(-1.f, 0.f, 0.f);
+		if (!playerShooting && !openFire)
+			changingShotDirection(-1.f, 0.f, 0.f);
 	}
 	if (GDP_IsKeyPressed('W') || GDP_IsKeyPressed('w')) {
 		// Change fire direction up
-		changingShotDirection(0.f, 0.f, 1.f);
+		if (!playerShooting && !openFire)
+			changingShotDirection(0.f, 0.f, 1.f);
 	}
 	if (GDP_IsKeyPressed('S') || GDP_IsKeyPressed('s')) {
 		// Change fire direction down
-		changingShotDirection(0.f, 0.f, -1.f);
+		if (!playerShooting && !openFire)
+			changingShotDirection(0.f, 0.f, -1.f);
 	}
 	if (GDP_IsKeyPressed('Q') || GDP_IsKeyPressed('q')) {
 		// Change fire direction up
-		changingShotDirection(0.f, 1.f, 0.f);
+		if (!playerShooting && !openFire)
+			changingShotDirection(0.f, 1.f, 0.f);
 	}
 	if (GDP_IsKeyPressed('E') || GDP_IsKeyPressed('e')) {
 		// Change fire direction down
-		changingShotDirection(0.f, -1.f, 0.f);
+		if (!playerShooting && !openFire)
+			changingShotDirection(0.f, -1.f, 0.f);
 	}
 	if (GDP_IsKeyPressed('1')) {
 		// Change bullet type to 1
@@ -233,16 +235,19 @@ void ArtilleryGame::GameUpdate()
 	if (GDP_IsKeyPressed('M') || GDP_IsKeyPressed('m')) {
 		printf("Reseting bullet position, try again!\n");
 		if (!playerShooting) {
-			m_Bullet.gameObject->Position = glm::vec3(m_PlayerTank->Position.x, 1.f, m_PlayerTank->Position.z);
-			m_Bullet.particle->position = Vector3(m_PlayerTank->Position.x, 1.f, m_PlayerTank->Position.z);
+			ResetBulletPosition();
+			CleanExplosion();
+			openFire = false;
 			shotDirection = Vector3(1.0f, 1.0f, 1.0f);
 		}
 	}
 
 	if (GDP_IsKeyPressed(' ')) {
 		// Change fire direction down
-		m_Bullet.particle->ApplyForce(shotDirection);
-		Shot();
+		if (!playerShooting && !openFire) {
+			m_Bullet.particle->ApplyForce(shotDirection);
+			playerShooting = true;
+		}
 	}
 
 	if (playerShooting) {
@@ -251,9 +256,7 @@ void ArtilleryGame::GameUpdate()
 
 		//World Forces
 		m_Bullet.particle->ApplyForce(gravity);
-
-		//Integration
-		m_particleSystem.Integrate(0.1f);
+		m_Bullet.particle->age = 100.f;
 
 		//Update the visual object from the phisics object
 		m_Bullet.gameObject->Position = glm::vec3(m_Bullet.particle->position.x, 
@@ -261,20 +264,74 @@ void ArtilleryGame::GameUpdate()
 												  m_Bullet.particle->position.z);
 	}
 
-	//Bullet hit the ground and not the enemy
 	if (m_Bullet.gameObject->Position.y <= 0.0f) {
-		// If bullet hit the ground
 		playerShooting = false;
-		//Bullet hit the enemy!
+		openFire = true;
+
+		// If Bullet hit the enemy!
 		printf("ABS = %2.f\n", DistanceBetween(m_Bullet.gameObject->Position, m_EnemyTank->Position));
 		if (DistanceBetween(m_Bullet.gameObject->Position, m_EnemyTank->Position) <= ENEMY_TANK_RADIUS) {
 			// TO-DO enemy position range
+			ResetBulletPosition();
+			Boom();
+			m_EnemyTank->Position = glm::vec3(100.0f, 100.f, 100.f);
+			enemyHit = true;
 			printf("ENEMY TANK HITTED! Congratulations! Press N to start a new Game\n");
 		}
 		else {
 			printf("Enemy Tank missed! Press M to try again\n");
 		}
+
 		m_Bullet.gameObject->Position.y = 0.1f;
+	}
+
+	if (enemyHit) {
+		for (int i = 0; i < m_explosionParticles.size(); i++) {
+			m_explosionParticles[i].particle->ApplyForce(gravity);
+			m_explosionParticles[i].gameObject->Position =
+				glm::vec3(m_explosionParticles[i].particle->position.x,
+					m_explosionParticles[i].particle->position.y,
+					m_explosionParticles[i].particle->position.z);
+
+			if (m_explosionParticles[i].particle->age <= 0.f)
+				CleanExplosion();
+		}
+	}
+	//Integration
+	m_particleSystem.Integrate(0.1f);
+}
+
+void ArtilleryGame::Boom() {
+	for (int i = 0; i < m_explosionParticles.size(); i++) {
+		m_explosionParticles[i].gameObject->Position = glm::vec3(m_EnemyTank->Position.x, 0.5f, m_EnemyTank->Position.z);
+		m_explosionParticles[i].particle->position = Vector3(m_EnemyTank->Position.x, 0.5f, m_EnemyTank->Position.z);
+
+		m_explosionParticles[i].particle->ApplyForce(Vector3(RandFloat(-5.0f, 5.0f), 7.0f, RandFloat(-5.0f, 5.0f)));
+		m_explosionParticles[i].particle->age = 10.0f;
+	}
+}
+
+void ArtilleryGame::CreateExplosion(float explosionSize) {
+	for (int i = 0; i <= explosionSize; i++) {
+		Fire f;
+		f.particle = m_particleSystem.CreateParticle(1.0f);
+		f.gameObject = GDP_CreateGameObject();
+		f.gameObject->Renderer.ShaderId = 1;
+		f.gameObject->Renderer.MeshId = SphereMaterialId;
+		f.gameObject->Renderer.MaterialId = SphereMaterialId;
+		f.gameObject->Scale = glm::vec3(0.5f, 0.5f, 0.5f);
+
+		f.gameObject->Position = glm::vec3(100.f, 100.f, 100.f);
+
+		m_explosionParticles.push_back(f);
+	}
+
+	int amazingBreakPoint = 5;
+}
+
+void ArtilleryGame::CleanExplosion() {
+	for (int i = 0; i < m_explosionParticles.size(); i++) {
+		m_explosionParticles[i].gameObject->Position = glm::vec3(100.f, 100.f, 100.f);
 	}
 }
 

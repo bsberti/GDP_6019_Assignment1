@@ -11,7 +11,7 @@ public:
 	~ParticleSystem();
 
 	void GenerateParticles(unsigned int count);
-	Particle* CreateParticle();
+	Particle* CreateParticle(float age);
 	//void CreateParticle(const Vector3& velocity);
 	//void AddParticle(Particle* particle);
 	void Integrate(float duration);

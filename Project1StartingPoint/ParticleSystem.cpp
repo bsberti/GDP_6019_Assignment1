@@ -22,9 +22,9 @@ void ParticleSystem::GenerateParticles(unsigned int count) {
 	m_Particles.resize(count);
 }
 
-Particle* ParticleSystem::CreateParticle() {
+Particle* ParticleSystem::CreateParticle(float age) {
 	Particle* newParticle = new Particle();
-	newParticle->age = 1000.f;
+	newParticle->age = age;
 	m_Particles.push_back(newParticle);
 	return newParticle;
 }
