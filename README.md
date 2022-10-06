@@ -11,7 +11,7 @@ How to play:
 - Press E - change y axis of shot direction ny -1
 
 - Press N - To start a New Game
-- Press M - To start shot again
+- Press M - To reset bullet position (Player position)
 
 - Press 1 - To change the bullet weight to 1 kg
 - Press 2 - To change the bullet weight to 2 kg
